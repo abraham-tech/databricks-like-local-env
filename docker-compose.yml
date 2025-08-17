@@ -1,0 +1,82 @@
+version: "3.8"
+
+services:
+  spark:
+    image: bitnami/spark:3.5.1
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    networks:
+      - databricks-net
+
+  spark-worker:
+    image: bitnami/spark:3.5.1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+    depends_on:
+      - spark
+    networks:
+      - databricks-net
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./jupyter:/home/jovyan/work
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    networks:
+      - databricks-net
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.12.1
+    command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/artifacts
+    networks:
+      - databricks-net
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+    volumes:
+      - ./minio/data:/data
+    networks:
+      - databricks-net
+
+  zeppelin:
+    image: apache/zeppelin:0.11.0
+    ports:
+      - "8081:8080"
+    environment:
+      - ZEPPELIN_ADDR=0.0.0.0
+    networks:
+      - databricks-net
+
+  polynote:
+    image: polynote/polynote:latest
+    ports:
+      - "8192:8192"
+      - "4040-4050:4040-4050"
+    volumes:
+      - ./polynote/config/config.yml:/opt/config/config.yml
+      - ./polynote/notebooks:/opt/notebooks
+    command: ["--config", "/opt/config/config.yml"]
+    networks:
+      - databricks-net
+
+networks:
+  databricks-net:
+    driver: bridge

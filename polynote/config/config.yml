@@ -1,0 +1,18 @@
+spark:
+  master: "local[*]"
+  config:
+    spark.driver.memory: 2g
+    spark.executor.memory: 2g
+
+kernels:
+  python:
+    executable: python3
+
+listen:
+  host: 0.0.0.0
+
+storage:
+  dir: /opt/notebooks
+  mounts:
+    examples:
+      dir: examples
